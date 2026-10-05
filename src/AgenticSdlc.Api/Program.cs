@@ -1,9 +1,13 @@
+using AgenticSdlc.Api.Users;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+builder.Services.AddProblemDetails();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 
 var app = builder.Build();
 
@@ -19,6 +23,9 @@ if (app.Environment.IsDevelopment())
 app.MapHealthChecks("/health")
     .WithMetadata(new HttpMethodMetadata([HttpMethods.Get, HttpMethods.Head]))
     .ExcludeFromDescription();
+
+// The API itself is mapped in every environment (spec 2026-10-05-user-management-api §2).
+app.MapUserEndpoints();
 
 app.Run();
 
