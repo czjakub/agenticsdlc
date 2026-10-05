@@ -1,0 +1,9 @@
+{
+  "name": "agenticsdlc",
+  "private": true,
+  "scripts": {
+    "build": "PATH=\"$HOME/.dotnet:$PATH\" dotnet build AgenticSdlc.slnx",
+    "test": "PATH=\"$HOME/.dotnet:$PATH\" dotnet test --solution AgenticSdlc.slnx",
+    "start": "PATH=\"$HOME/.dotnet:$PATH\" dotnet run --project src/AgenticSdlc.Api"
+  }
+}

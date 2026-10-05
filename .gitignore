@@ -1,0 +1,13 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+
+# Node (npm shim only)
+node_modules/
+
+# cezar runtime state
+.ai/cezar/
