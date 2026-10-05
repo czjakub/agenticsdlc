@@ -46,18 +46,32 @@ public sealed class OpenApiTests(WebApplicationFactory<Program> factory)
         Assert.True(info.TryGetProperty("version", out _), "info has no 'version'");
     }
 
-    [Fact] // AC4: "no API endpoints yet"
-    public async Task Document_has_no_paths()
+    // Supersedes skeleton AC4 ("paths is empty"): user-management spec 2026-10-05 §9 / AC21.
+    [Fact] // AC21
+    public async Task Document_describes_exactly_the_user_paths()
     {
         var document = await GetDocumentAsync();
 
-        // An absent 'paths' would also mean "no endpoints", but OpenAPI 3 requires it; accept either.
-        if (document.TryGetProperty("paths", out var paths))
-        {
-            Assert.Equal(JsonValueKind.Object, paths.ValueKind);
-            var names = paths.EnumerateObject().Select(p => p.Name).ToArray();
-            Assert.Empty(names);
-        }
+        Assert.True(document.TryGetProperty("paths", out var paths), "document has no 'paths'");
+        Assert.Equal(JsonValueKind.Object, paths.ValueKind);
+        var names = paths.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(["/api/users", "/api/users/{id}"], names);
+    }
+
+    [Fact] // AC21: each path carries exactly the verbs of spec §4
+    public async Task Document_describes_the_user_operations()
+    {
+        var document = await GetDocumentAsync();
+        var paths = document.GetProperty("paths");
+
+        string[] Verbs(string path) => paths.GetProperty(path).EnumerateObject()
+            .Select(p => p.Name)
+            .Where(n => n is "get" or "put" or "post" or "delete" or "patch" or "head" or "options" or "trace")
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(["get", "post"], Verbs("/api/users"));
+        Assert.Equal(["delete", "get", "put"], Verbs("/api/users/{id}"));
     }
 
     [Fact] // AC4: the health probe is infrastructure, not part of the API description
