@@ -153,6 +153,20 @@ public sealed class UsersCreateTests(WebApplicationFactory<Program> factory)
         Assert.Equal(max, user.GetProperty("firstName").GetString());
     }
 
+    [Theory] // §3: control characters (NUL, newline, tab, DEL) are not valid in a name
+    [InlineData("Ja\u0000n", "Kowalski", "firstName")]
+    [InlineData("Jan", "Kowal\nski", "lastName")]
+    [InlineData("J\tan", "Kowalski\u007f", "firstName", "lastName")]
+    public async Task Post_with_control_characters_in_name_returns_400(string firstName, string lastName, params string[] keys)
+    {
+        using var client = NewClient();
+
+        using var response = await UsersApi.PostAsync(client,
+            new { email = "jan@example.com", firstName, lastName });
+
+        await UsersApi.AssertValidationErrorsAsync(response, keys);
+    }
+
     [Theory] // AC6
     [InlineData("jan@example.com")]
     [InlineData("JAN@EXAMPLE.COM")]

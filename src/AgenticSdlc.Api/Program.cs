@@ -11,6 +11,10 @@ builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 
 var app = builder.Build();
 
+// Binder failures (malformed JSON, bad query values) end as a bodiless 400 outside
+// Development; with AddProblemDetails this writes them as problem details too.
+app.UseStatusCodePages();
+
 // API docs are advertised in Development only (spec 2026-10-05 §4).
 if (app.Environment.IsDevelopment())
 {

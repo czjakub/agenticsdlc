@@ -35,4 +35,22 @@ public sealed class UsersProductionTests(WebApplicationFactory<Program> factory)
         Assert.DoesNotContain("exception", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("   at ", body);
     }
+
+    [Theory] // §2: binder failures are problem details too, not an empty 400
+    [InlineData("POST", "/api/users", "[]")]
+    [InlineData("POST", "/api/users", "null")]
+    [InlineData("GET", "/api/users?page=abc", null)]
+    public async Task Binding_errors_are_problem_details_in_production(string method, string path, string? body)
+    {
+        using var client = ApiFactory.For(factory, Environments.Production).CreateClient();
+        using var request = new HttpRequestMessage(new HttpMethod(method), path);
+        if (body is not null)
+            request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        await UsersApi.AssertProblemAsync(response, HttpStatusCode.BadRequest);
+        var text = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("exception", text, StringComparison.OrdinalIgnoreCase);
+    }
 }

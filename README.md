@@ -34,7 +34,7 @@ Spec: `.ai/specs/2026-10-05-user-management-api.md`. Mapped in every environment
 
 - `search` is a case-insensitive literal substring matched against email, firstName **or** lastName; `email`/`firstName`/`lastName` filter only their own field. All given terms are ANDed.
 - `pageSize` is 1..100 (default 20); results are ordered by lastName, firstName, email.
-- Email is unique case-insensitively; all fields are trimmed; names are 1..100 chars, email ≤ 254.
+- Email is unique case-insensitively; all fields are trimmed; names are 1..100 chars with no control characters, email ≤ 254.
 
 > **Known limitations:** storage is **in-memory** — data is lost on restart and not shared between instances. There is **no authentication or authorization**: anyone who can reach the API can read, change and delete users.
 

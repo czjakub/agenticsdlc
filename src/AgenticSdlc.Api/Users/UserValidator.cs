@@ -61,6 +61,8 @@ public static class UserValidator
             errors[key] = [$"{label} is required."];
         else if (value.Length > MaxNameLength)
             errors[key] = [$"{label} must be at most {MaxNameLength} characters."];
+        else if (value.Any(char.IsControl))
+            errors[key] = [$"{label} must not contain control characters."];
     }
 
     // MailAddress also accepts display-name forms ("Name <x@y>"); require the parsed address
