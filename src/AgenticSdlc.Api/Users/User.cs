@@ -9,5 +9,6 @@ public sealed record User(
     string Email,
     string FirstName,
     string LastName,
+    string? PhoneNumber,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

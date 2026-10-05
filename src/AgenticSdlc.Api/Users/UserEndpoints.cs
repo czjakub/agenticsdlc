@@ -38,7 +38,7 @@ public static class UserEndpoints
     private static Results<Created<UserResponse>, ValidationProblem, ProblemHttpResult> Create(
         CreateUserRequest request, IUserRepository users)
     {
-        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, out var fields);
+        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, request.PhoneNumber, out var fields);
         if (errors.Count > 0)
             return TypedResults.ValidationProblem(errors);
 
@@ -53,7 +53,7 @@ public static class UserEndpoints
     private static Results<Ok<UserResponse>, ValidationProblem, ProblemHttpResult> Update(
         Guid id, UpdateUserRequest request, IUserRepository users)
     {
-        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, out var fields);
+        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, request.PhoneNumber, out var fields);
         if (errors.Count > 0)
             return TypedResults.ValidationProblem(errors);
 
