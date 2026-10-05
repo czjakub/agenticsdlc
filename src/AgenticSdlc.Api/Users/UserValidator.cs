@@ -2,20 +2,23 @@ using System.Net.Mail;
 
 namespace AgenticSdlc.Api.Users;
 
-/// <summary>Trimmed, validated user fields.</summary>
-public sealed record UserFields(string Email, string FirstName, string LastName);
+/// <summary>Trimmed, validated user fields. <see cref="PhoneNumber"/> is normalized E.164 or null.</summary>
+public sealed record UserFields(string Email, string FirstName, string LastName, string? PhoneNumber);
 
 /// <summary>Hand-written validation (spec §2, §3): trims first, reports every failing field at once.</summary>
 public static class UserValidator
 {
     public const int MaxEmailLength = 254;
     public const int MaxNameLength = 100;
+    public const int MaxPhoneLength = 32;
+    public const int MinPhoneDigits = 8;
+    public const int MaxPhoneDigits = 15;
     public const int MaxFilterLength = 254;
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
 
     public static Dictionary<string, string[]> Validate(
-        string? email, string? firstName, string? lastName, out UserFields fields)
+        string? email, string? firstName, string? lastName, string? phoneNumber, out UserFields fields)
     {
         var errors = new Dictionary<string, string[]>();
         var e = email?.Trim() ?? "";
@@ -31,8 +34,9 @@ public static class UserValidator
 
         ValidateName(errors, "firstName", "First name", f);
         ValidateName(errors, "lastName", "Last name", l);
+        var phone = ValidatePhone(errors, phoneNumber);
 
-        fields = new UserFields(e, f, l);
+        fields = new UserFields(e, f, l, phone);
         return errors;
     }
 
@@ -63,6 +67,50 @@ public static class UserValidator
             errors[key] = [$"{label} must be at most {MaxNameLength} characters."];
         else if (value.Any(char.IsControl))
             errors[key] = [$"{label} must not contain control characters."];
+    }
+
+    // Optional; blank means no phone. Normalizes to E.164 ("+" and 8–15 ASCII digits) without a
+    // regex or a numbering-plan library (spec 2026-10-05-user-phone-number §3).
+    private static string? ValidatePhone(Dictionary<string, string[]> errors, string? value)
+    {
+        var v = value?.Trim();
+        if (string.IsNullOrEmpty(v))
+            return null;
+        if (v.Length > MaxPhoneLength)
+        {
+            errors["phoneNumber"] = [$"Phone number must be at most {MaxPhoneLength} characters."];
+            return null;
+        }
+
+        int start;
+        if (v.StartsWith("00", StringComparison.Ordinal))
+            start = 2;
+        else if (v.StartsWith('+'))
+            start = 1;
+        else
+        {
+            errors["phoneNumber"] = ["Phone number must start with a country code (+ or 00)."];
+            return null;
+        }
+
+        var digits = new System.Text.StringBuilder(MaxPhoneLength);
+        foreach (var c in v.AsSpan(start))
+        {
+            if (char.IsAsciiDigit(c))
+                digits.Append(c);
+            else if (c is not (' ' or '-' or '.' or '(' or ')'))
+            {
+                errors["phoneNumber"] = ["Phone number may contain only digits, spaces and - . ( ) separators."];
+                return null;
+            }
+        }
+
+        if (digits.Length is < MinPhoneDigits or > MaxPhoneDigits || digits[0] == '0')
+        {
+            errors["phoneNumber"] = [$"Phone number must have {MinPhoneDigits} to {MaxPhoneDigits} digits in international (E.164) format."];
+            return null;
+        }
+        return "+" + digits;
     }
 
     // MailAddress also accepts display-name forms ("Name <x@y>"); require the parsed address

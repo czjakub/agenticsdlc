@@ -22,19 +22,21 @@ The `http` launch profile listens on http://localhost:5080 in `Development` and 
 
 ## Users API
 
-Spec: `.ai/specs/2026-10-05-user-management-api.md`. Mapped in every environment. Errors are RFC 9457 problem details (`application/problem+json`).
+Specs: `.ai/specs/2026-10-05-user-management-api.md`, `.ai/specs/2026-10-05-user-phone-number.md`. Mapped in every environment. Errors are RFC 9457 problem details (`application/problem+json`).
 
 | Method & path | Success | Errors |
 | --- | --- | --- |
 | `GET /api/users?search=&email=&firstName=&lastName=&page=1&pageSize=20` | `200` `{ items, page, pageSize, totalCount }` | `400` invalid query |
 | `GET /api/users/{id}` | `200` user | `404` |
-| `POST /api/users` `{ email, firstName, lastName }` | `201` user + `Location` | `400` validation, `409` email taken |
-| `PUT /api/users/{id}` `{ email, firstName, lastName }` | `200` user | `400`, `404`, `409` |
+| `POST /api/users` `{ email, firstName, lastName, phoneNumber? }` | `201` user + `Location` | `400` validation, `409` email taken |
+| `PUT /api/users/{id}` `{ email, firstName, lastName, phoneNumber? }` | `200` user | `400`, `404`, `409` |
 | `DELETE /api/users/{id}` | `204` | `404` |
 
 - `search` is a case-insensitive literal substring matched against email, firstName **or** lastName; `email`/`firstName`/`lastName` filter only their own field. All given terms are ANDed.
 - `pageSize` is 1..100 (default 20); results are ordered by lastName, firstName, email.
 - Email is unique case-insensitively; all fields are trimmed; names are 1..100 chars with no control characters, email ≤ 254.
+- `phoneNumber` is optional and not unique; every user representation carries it as a string or `null`. Input must start with a country code (`+` or `00`), may use space `-` `.` `(` `)` as separators, is at most 32 chars, and is stored normalized to E.164 (`+` and 8–15 digits, first digit 1–9), e.g. `0048 (600) 123-456` → `+48600123456`. Blank or `null` means no phone. `search` does not match it.
+- `PUT` is a **full replace**: omitting `phoneNumber` (or sending `null`/blank) **clears** a stored phone.
 
 > **Known limitations:** storage is **in-memory** — data is lost on restart and not shared between instances. There is **no authentication or authorization**: anyone who can reach the API can read, change and delete users.
 
