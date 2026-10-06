@@ -1,9 +1,13 @@
+using System.Globalization;
 using System.Net.Mail;
 
 namespace AgenticSdlc.Api.Users;
 
-/// <summary>Trimmed, validated user fields. <see cref="PhoneNumber"/> is normalized E.164 or null.</summary>
-public sealed record UserFields(string Email, string FirstName, string LastName, string? PhoneNumber);
+/// <summary>
+/// Trimmed, validated user fields. <see cref="PhoneNumber"/> is normalized E.164 or null;
+/// <see cref="BirthDate"/> is a calendar date or null.
+/// </summary>
+public sealed record UserFields(string Email, string FirstName, string LastName, string? PhoneNumber, DateOnly? BirthDate);
 
 /// <summary>Hand-written validation (spec §2, §3): trims first, reports every failing field at once.</summary>
 public static class UserValidator
@@ -13,12 +17,14 @@ public static class UserValidator
     public const int MaxPhoneLength = 32;
     public const int MinPhoneDigits = 8;
     public const int MaxPhoneDigits = 15;
+    public const int MaxAgeYears = 150;
     public const int MaxFilterLength = 254;
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
 
     public static Dictionary<string, string[]> Validate(
-        string? email, string? firstName, string? lastName, string? phoneNumber, out UserFields fields)
+        string? email, string? firstName, string? lastName, string? phoneNumber,
+        string? birthDate, DateOnly today, out UserFields fields)
     {
         var errors = new Dictionary<string, string[]>();
         var e = email?.Trim() ?? "";
@@ -35,8 +41,9 @@ public static class UserValidator
         ValidateName(errors, "firstName", "First name", f);
         ValidateName(errors, "lastName", "Last name", l);
         var phone = ValidatePhone(errors, phoneNumber);
+        var birth = ValidateBirthDate(errors, birthDate, today);
 
-        fields = new UserFields(e, f, l, phone);
+        fields = new UserFields(e, f, l, phone, birth);
         return errors;
     }
 
@@ -111,6 +118,32 @@ public static class UserValidator
             return null;
         }
         return "+" + digits;
+    }
+
+    // Optional; blank means no birth date. Strict invariant yyyy-MM-dd, not in the future and within
+    // the last MaxAgeYears years; the caller supplies today from TimeProvider (spec 2026-10-06-user-birth-date §3).
+    private static DateOnly? ValidateBirthDate(Dictionary<string, string[]> errors, string? value, DateOnly today)
+    {
+        var v = value?.Trim();
+        if (string.IsNullOrEmpty(v))
+            return null;
+        if (v.Length != 10
+            || !DateOnly.TryParseExact(v, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+        {
+            errors["birthDate"] = ["Birth date must be a valid date in yyyy-MM-dd format."];
+            return null;
+        }
+        if (d > today)
+        {
+            errors["birthDate"] = ["Birth date cannot be in the future."];
+            return null;
+        }
+        if (d < today.AddYears(-MaxAgeYears))
+        {
+            errors["birthDate"] = [$"Birth date must be within the last {MaxAgeYears} years."];
+            return null;
+        }
+        return d;
     }
 
     // MailAddress also accepts display-name forms ("Name <x@y>"); require the parsed address

@@ -22,21 +22,22 @@ The `http` launch profile listens on http://localhost:5080 in `Development` and 
 
 ## Users API
 
-Specs: `.ai/specs/2026-10-05-user-management-api.md`, `.ai/specs/2026-10-05-user-phone-number.md`. Mapped in every environment. Errors are RFC 9457 problem details (`application/problem+json`).
+Specs: `.ai/specs/2026-10-05-user-management-api.md`, `.ai/specs/2026-10-05-user-phone-number.md`, `.ai/specs/2026-10-06-user-birth-date.md`. Mapped in every environment. Errors are RFC 9457 problem details (`application/problem+json`).
 
 | Method & path | Success | Errors |
 | --- | --- | --- |
 | `GET /api/users?search=&email=&firstName=&lastName=&page=1&pageSize=20` | `200` `{ items, page, pageSize, totalCount }` | `400` invalid query |
 | `GET /api/users/{id}` | `200` user | `404` |
-| `POST /api/users` `{ email, firstName, lastName, phoneNumber? }` | `201` user + `Location` | `400` validation, `409` email taken |
-| `PUT /api/users/{id}` `{ email, firstName, lastName, phoneNumber? }` | `200` user | `400`, `404`, `409` |
+| `POST /api/users` `{ email, firstName, lastName, phoneNumber?, birthDate? }` | `201` user + `Location` | `400` validation, `409` email taken |
+| `PUT /api/users/{id}` `{ email, firstName, lastName, phoneNumber?, birthDate? }` | `200` user | `400`, `404`, `409` |
 | `DELETE /api/users/{id}` | `204` | `404` |
 
 - `search` is a case-insensitive literal substring matched against email, firstName **or** lastName; `email`/`firstName`/`lastName` filter only their own field. All given terms are ANDed.
 - `pageSize` is 1..100 (default 20); results are ordered by lastName, firstName, email.
 - Email is unique case-insensitively; all fields are trimmed; names are 1..100 chars with no control characters, email ≤ 254.
 - `phoneNumber` is optional and not unique; every user representation carries it as a string or `null`. Input must start with a country code (`+` or `00`), may use space `-` `.` `(` `)` as separators, is at most 32 chars, and is stored normalized to E.164 (`+` and 8–15 digits, first digit 1–9), e.g. `0048 (600) 123-456` → `+48600123456`. Blank or `null` means no phone. `search` does not match it.
-- `PUT` is a **full replace**: omitting `phoneNumber` (or sending `null`/blank) **clears** a stored phone.
+- `birthDate` is optional and not unique; every user representation carries it as a `yyyy-MM-dd` string or `null`. Input must be exactly an ISO 8601 calendar date `yyyy-MM-dd` (e.g. `1990-05-17`; surrounding whitespace is trimmed, datetimes and other formats are rejected), not in the future and not more than 150 years ago, both judged against today's UTC date. Blank or `null` means no birth date. There is no `age` field and no `birthDate` filter; `search` does not match it.
+- `PUT` is a **full replace**: omitting `phoneNumber` or `birthDate` (or sending `null`/blank) **clears** the stored value.
 
 > **Known limitations:** storage is **in-memory** — data is lost on restart and not shared between instances. There is **no authentication or authorization**: anyone who can reach the API can read, change and delete users.
 
