@@ -51,7 +51,7 @@ public sealed class InMemoryUserRepository(TimeProvider time) : IUserRepository
                 return new WriteResult(WriteStatus.DuplicateEmail);
 
             var now = time.GetUtcNow();
-            var user = new User(Guid.CreateVersion7(), fields.Email, fields.FirstName, fields.LastName, fields.PhoneNumber, now, now);
+            var user = new User(Guid.CreateVersion7(), fields.Email, fields.FirstName, fields.LastName, fields.PhoneNumber, fields.BirthDate, now, now);
             _users.Add(user.Id, user);
             return new WriteResult(WriteStatus.Ok, user);
         }
@@ -72,6 +72,7 @@ public sealed class InMemoryUserRepository(TimeProvider time) : IUserRepository
                 FirstName = fields.FirstName,
                 LastName = fields.LastName,
                 PhoneNumber = fields.PhoneNumber,
+                BirthDate = fields.BirthDate,
                 UpdatedAt = time.GetUtcNow(),
             };
             _users[id] = updated;

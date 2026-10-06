@@ -4,9 +4,9 @@ namespace AgenticSdlc.Api.Users;
 
 // Fields are nullable so a missing field reaches UserValidator (400 with a field error)
 // instead of failing in the binder without one (spec §3).
-public sealed record CreateUserRequest(string? Email, string? FirstName, string? LastName, string? PhoneNumber);
+public sealed record CreateUserRequest(string? Email, string? FirstName, string? LastName, string? PhoneNumber, string? BirthDate);
 
-public sealed record UpdateUserRequest(string? Email, string? FirstName, string? LastName, string? PhoneNumber);
+public sealed record UpdateUserRequest(string? Email, string? FirstName, string? LastName, string? PhoneNumber, string? BirthDate);
 
 public sealed record UserResponse(
     Guid Id,
@@ -14,11 +14,12 @@ public sealed record UserResponse(
     string FirstName,
     string LastName,
     string? PhoneNumber,
+    DateOnly? BirthDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
 {
     public static UserResponse From(User user) =>
-        new(user.Id, user.Email, user.FirstName, user.LastName, user.PhoneNumber, user.CreatedAt, user.UpdatedAt);
+        new(user.Id, user.Email, user.FirstName, user.LastName, user.PhoneNumber, user.BirthDate, user.CreatedAt, user.UpdatedAt);
 }
 
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);

@@ -10,5 +10,6 @@ public sealed record User(
     string FirstName,
     string LastName,
     string? PhoneNumber,
+    DateOnly? BirthDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

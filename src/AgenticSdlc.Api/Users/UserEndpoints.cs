@@ -36,9 +36,11 @@ public static class UserEndpoints
             : NotFound();
 
     private static Results<Created<UserResponse>, ValidationProblem, ProblemHttpResult> Create(
-        CreateUserRequest request, IUserRepository users)
+        CreateUserRequest request, IUserRepository users, TimeProvider time)
     {
-        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, request.PhoneNumber, out var fields);
+        var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+        var errors = UserValidator.Validate(
+            request.Email, request.FirstName, request.LastName, request.PhoneNumber, request.BirthDate, today, out var fields);
         if (errors.Count > 0)
             return TypedResults.ValidationProblem(errors);
 
@@ -51,9 +53,11 @@ public static class UserEndpoints
     }
 
     private static Results<Ok<UserResponse>, ValidationProblem, ProblemHttpResult> Update(
-        Guid id, UpdateUserRequest request, IUserRepository users)
+        Guid id, UpdateUserRequest request, IUserRepository users, TimeProvider time)
     {
-        var errors = UserValidator.Validate(request.Email, request.FirstName, request.LastName, request.PhoneNumber, out var fields);
+        var today = DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+        var errors = UserValidator.Validate(
+            request.Email, request.FirstName, request.LastName, request.PhoneNumber, request.BirthDate, today, out var fields);
         if (errors.Count > 0)
             return TypedResults.ValidationProblem(errors);
 
